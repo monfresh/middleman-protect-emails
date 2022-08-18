@@ -2,6 +2,8 @@ require 'middleman-core/util'
 
 class Middleman::ProtectEmailsExtension < ::Middleman::Extension
 
+  # option :file, 'text_replace.yml', 'The file that defines the text to be replaced'
+
   def initialize(app, options_hash={}, &block)
     super
   end
@@ -30,41 +32,24 @@ class Middleman::ProtectEmailsExtension < ::Middleman::Extension
         end
       end
 
+      headers['Content-Length'] = body.bytesize.to_s if body
+
       [status, headers, response]
     end
 
     private
 
     def rewrite_response(body)
-      # Keeps track of email replaces
-      replaced_email = false
+      root_path = ::Middleman::Application.root
+      config_file_path = File.join(root_path, 'text_replace.txt')
 
-      # Replaces mailto links with ROT13 equivalent
-      # TODO: Don't replace plaintext mailto links
-      invalid_character = '\s"\'>'
-      email_username = "[^@#{invalid_character}]+"
-      email_domain = "[^?#{invalid_character}]+"
-      email_param = "[^&#{invalid_character}]+"
-      new_content = body.gsub /mailto:(#{email_username}@#{email_domain}(\?#{email_param}(\&#{email_param})*)?)/i do
-        replaced_email = true
-        email = $1.tr 'A-Za-z','N-ZA-Mn-za-m'
-        "#email-protection-#{email}"
-      end
+      lines = File.readlines(config_file_path)
 
-      # Don't do anything else if there are no emails on the page
-      return body unless replaced_email
+      lines.each_with_object(body) do |line, body|
+        key = line.split('=>')[0].strip
+        value = line.split('=>')[1].strip
 
-      # Reads decoding script
-      file = File.join(File.dirname(__FILE__), 'rot13_script.html')
-      script_content = File.read file
-
-      # Appends decoding script at end of body or end of page
-      if new_content =~ /<\/body>/i
-        new_content.gsub(/(<\/body>)/i) do
-          script_content + $1
-        end
-      else
-        new_content + script_content
+        body.gsub!(/(?!<.*?)#{key}(?![^<>]*?>)/, value)
       end
     end
   end

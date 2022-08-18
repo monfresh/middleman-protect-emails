@@ -18,7 +18,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
   spec.required_ruby_version = '>= 1.9.3'
 
-  spec.add_dependency 'middleman-core', '~> 3.2'
+  spec.add_dependency 'middleman-core', '~> 4.2'
 
   spec.add_development_dependency 'rake', '~> 10.0'
 end
